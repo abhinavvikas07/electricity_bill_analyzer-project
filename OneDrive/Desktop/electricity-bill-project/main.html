@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Electricity Bill Analyzer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+    input, button { padding: 8px; margin: 5px; }
+    table, th, td { border: 1px solid #ddd; border-collapse: collapse; padding: 8px; }
+    th { background-color: #f2f2f2; }
+    h2 { color: #444; }
+    button { background-color: #008cba; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background-color: #006b97; }
+  </style>
+</head>
+<body>
+
+  <h2>Electricity Bill Analyzer Web App</h2>
+
+  <!-- Main Bill Estimator -->
+  <label for="units">Enter Units Consumed:</label>
+  <input type="number" id="units" min="0">
+  <button onclick="calculateBill()">Calculate Bill</button>
+
+  <p id="billResult"></p>
+  <p id="carbonResult" style="color: green; font-weight: bold;"></p>
+
+  <hr>
+
+  <!-- Load-wise Estimator -->
+  <h3>Device-wise Energy Estimator</h3>
+  <table id="deviceTable">
+    <tr>
+      <th>Device</th>
+      <th>Power (W)</th>
+      <th>Hours/Day</th>
+      <th>Days</th>
+    </tr>
+    <tr>
+      <td><input type="text" value="Fan" /></td>
+      <td><input type="number" value="75" /></td>
+      <td><input type="number" value="8" /></td>
+      <td><input type="number" value="30" /></td>
+    </tr>
+  </table>
+  <button onclick="addRow()">+ Add Device</button>
+  <button onclick="calculateDeviceUnits()">Calculate Units</button>
+  <p id="deviceUnitsResult"></p>
+
+  <hr>
+
+  <!-- PDF and Alerts -->
+  <button onclick="generatePDF()">Download PDF Bill</button>
+  <button onclick="sendAlert()">Send Email Alert (Mock)</button>
+
+  <script>
+    let units = 0;
+    let totalBill = 0;
+    let carbonEmissions = 0;
+
+    function calculateBill() {
+      units = parseFloat(document.getElementById("units").value);
+      if (isNaN(units) || units < 0) return alert("Please enter valid units");
+
+      let charge = 0;
+      if (units <= 100) charge = units * 3;
+      else if (units <= 200) charge = 100 * 3 + (units - 100) * 5;
+      else if (units <= 300) charge = 100 * 3 + 100 * 5 + (units - 200) * 7;
+      else charge = 100 * 3 + 100 * 5 + 100 * 7 + (units - 300) * 10;
+
+      let fixed = 50;
+      let tax = charge * 0.1;
+      totalBill = charge + fixed + tax;
+
+      carbonEmissions = units * 0.92;
+
+      document.getElementById("billResult").innerHTML =
+        `Bill Amount: ₹${totalBill.toFixed(2)} (Energy: ₹${charge.toFixed(2)} + Fixed: ₹${fixed} + Tax: ₹${tax.toFixed(2)})`;
+
+      document.getElementById("carbonResult").innerHTML =
+        `Estimated Carbon Footprint: ${carbonEmissions.toFixed(2)} kg CO₂`;
+    }
+
+    function addRow() {
+      let table = document.getElementById("deviceTable");
+      let row = table.insertRow();
+      for (let i = 0; i < 4; i++) {
+        let cell = row.insertCell(i);
+        cell.innerHTML = '<input type="text" />';
+      }
+    }
+
+    function calculateDeviceUnits() {
+      let rows = document.getElementById("deviceTable").rows;
+      let totalUnits = 0;
+      for (let i = 1; i < rows.length; i++) {
+        let cells = rows[i].cells;
+        let watt = parseFloat(cells[1].children[0].value);
+        let hours = parseFloat(cells[2].children[0].value);
+        let days = parseFloat(cells[3].children[0].value);
+        if (!isNaN(watt) && !isNaN(hours) && !isNaN(days)) {
+          totalUnits += (watt * hours * days) / 1000;
+        }
+      }
+      document.getElementById("deviceUnitsResult").innerHTML =
+        `Estimated Device-wise Consumption: ${totalUnits.toFixed(2)} units`;
+    }
+
+    async function generatePDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(14);
+      doc.text("Electricity Bill Summary", 20, 20);
+      doc.text(`Units Consumed: ${units}`, 20, 30);
+      doc.text(`Bill Amount: ₹${totalBill.toFixed(2)}`, 20, 40);
+      doc.text(`Carbon Emission: ${carbonEmissions.toFixed(2)} kg CO₂`, 20, 50);
+      doc.save("Electricity_Bill.pdf");
+    }
+
+    function sendAlert() {
+      alert("Mock: Email/SMS alert sent. (This feature requires backend integration like SMTP or Twilio.)");
+    }
+  </script>
+
+</body>
+</html>
